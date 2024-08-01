@@ -11,7 +11,6 @@
  */
 import Layout from './Layout';
 import { isFunction } from '../../util/type';
-import { createRoot } from 'react-dom/client'
 
 export const NODE_ID_PREFIX = 'fc-node-';
 
@@ -30,36 +29,12 @@ export default class NodeManager {
 
     // 将数据根据dagre算法计算出位置，并移动节点位置
     layoutNodes(data, containerPosn) {
-        const wrappedGetNodeSize = this.runAsync(this.getNodeSize);
         this.data = data;
-        wrappedGetNodeSize();
-
         this.getNodeSize(this.data.nodes, containerPosn);
         new Layout(this.data, this.option, containerPosn);
         // 避免出现node的x,y为负值的情况，会导致就算父容器有滚动条也看不到该node
         const { minX, minY } = this.correctNode(this.data.nodes);
         this.moveNode(this.data.nodes, { minX, minY });
-    }
-
-    runAsync(fn) {
-        return function(...args) {
-            return (async ()=> {
-                try {
-                    return await fn(...args);
-                } catch(e) {
-                    console.error(e);
-                }
-            })();
-        }
-    }
-
-    getInnerSize(node) {
-        return new Promise(()=>{
-            requestIdleCallback((res)=>{
-                const innerSize = node.dom && node.dom.firstChild && node.dom.firstChild.getBoundingClientRect();
-                res(innerSize)
-            })
-        })
     }
 
     correctNode(nodes) {
@@ -79,14 +54,6 @@ export default class NodeManager {
         return { minX, minY };
     }
 
-    getInnerSize(node) {
-        return new Promise(()=>{
-            requestIdleCallback((res)=>{
-                const innerSize = node.
-            })
-        })
-    }
-
     moveNode(nodes, { minX, minY }) {
         nodes.forEach(node => {
             if (node.dom) {
@@ -99,10 +66,10 @@ export default class NodeManager {
     /**
      * 计算出给个节点的宽高，用于后续排版算法
      */
-    async getNodeSize(nodes,containerPosn) {
-        nodes.forEach(async node => {
+    getNodeSize(nodes,containerPosn) {
+        nodes.forEach(node => {
             let size = node.dom && node.dom.getBoundingClientRect();
-            let innerSize = await this.getInnerSize(node);
+            let innerSize = node.dom && node.dom.firstChild &&  node.dom.firstChild.getBoundingClientRect();
             // 外层容器的宽高目前是定死为50
             node.width = size && size.width/containerPosn.scaleX;
             node.height = size && size.height/containerPosn.scaleY;
@@ -123,9 +90,7 @@ export default class NodeManager {
         let renderFun = render || this.render;
         if (renderFun) {
             let dom = renderFun(nodeDom, ndata);
-            const root = createRoot(nodeDom);
-            root.render(dom);
-            // dom && nodeDom.appendChild(dom)
+            dom && nodeDom.appendChild(dom)
         }
         return nodeDom;
     }
